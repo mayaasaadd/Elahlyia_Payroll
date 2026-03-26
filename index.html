@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payroll Pro-Transformer | Executive Suite</title>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary: #002b5b;
+            --primary-light: #004085;
+            --accent: #e3b04b;
+            --success: #2d6a4f;
+            --error: #a4161a;
+            --bg: #f8f9fc;
+            --text-main: #2d3748;
+            --text-muted: #718096;
+        }
+
+        body { 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            background: var(--bg);
+            background-image: radial-gradient(#d1d5db 1px, transparent 1px);
+            background-size: 40px 40px;
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0; 
+        }
+
+        .card { 
+            background: white; 
+            padding: 3.5rem; 
+            border-radius: 24px; 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15); 
+            width: 100%; 
+            max-width: 650px; 
+            border-top: 10px solid var(--primary); 
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card::before {
+            content: "";
+            position: absolute;
+            top: 0; right: 0;
+            width: 150px; height: 150px;
+            background: linear-gradient(135deg, rgba(0,43,91,0.05) 0%, transparent 100%);
+            border-radius: 0 0 0 100%;
+        }
+
+        h2 { 
+            color: var(--primary); 
+            margin-top: 0; 
+            font-size: 2rem; 
+            font-weight: 800; 
+            text-transform: uppercase; 
+            letter-spacing: -0.5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle { 
+            color: var(--text-muted); 
+            font-size: 1.1rem; 
+            line-height: 1.6; 
+            margin-bottom: 2.5rem; 
+        }
+
+        .upload-area { 
+            border: 2px dashed #cbd5e0; 
+            padding: 3rem 2rem; 
+            text-align: center; 
+            border-radius: 20px; 
+            margin-bottom: 2rem; 
+            cursor: pointer; 
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .upload-area:hover { 
+            border-color: var(--primary); 
+            background: #f0f7ff;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 2.5rem;
+            color: var(--primary);
+            margin-bottom: 10px;
+        }
+
+        button { 
+            background: var(--primary); 
+            color: white; 
+            border: none; 
+            padding: 1.4rem; 
+            border-radius: 14px; 
+            width: 100%; 
+            font-weight: 700; 
+            cursor: pointer; 
+            transition: 0.3s; 
+            font-size: 1.1rem; 
+            text-transform: uppercase; 
+            letter-spacing: 1px;
+            box-shadow: 0 10px 15px -3px rgba(0, 43, 91, 0.3);
+        }
+
+        button:hover { 
+            background: var(--primary-light); 
+            transform: translateY(-3px); 
+            box-shadow: 0 20px 25px -5px rgba(0, 43, 91, 0.4); 
+        }
+
+        button:active { transform: translateY(-1px); }
+
+        #log { 
+            margin-top: 2rem; 
+            font-size: 1rem; 
+            text-align: center; 
+            font-weight: 600; 
+            padding: 15px; 
+            border-radius: 12px;
+            transition: all 0.3s;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Payroll Master Tool</h2>
+    <p class="subtitle">Transforming vertical payroll logs into high-fidelity, table-managed executive reports.</p>
+    
+    <div class="upload-area" id="dropZone" onclick="document.getElementById('excelFile').click()">
+        <div class="upload-icon" id="uiIcon">📄</div>
+        <strong id="uiText">Drop Excel file here or click to browse</strong>
+        <span id="uiSub" style="font-size: 0.85rem; color: #a0aec0;">Supports .xlsx and .xls formats</span>
+        <input type="file" id="excelFile" accept=".xlsx, .xls" style="display:none" onchange="showFile()" />
+    </div>
+    
+    <button onclick="transformPayroll()">
+        <span id="btnText">Execute Transformation</span>
+    </button>
+    <div id="log"></div>
+</div>
+
+<script>
+    
+function showFile() {
+    const input = document.getElementById('excelFile');
+    if (input.files.length > 0) {
+        document.getElementById('uiIcon').innerText = "✅";
+        document.getElementById('uiText').innerText = "File Selected";
+        document.getElementById('uiSub').innerText = input.files[0].name;
+        document.getElementById('uiSub').style.color = "var(--success)";
+    }
+}
+
+async function transformPayroll() {
+    const fileInput = document.getElementById('excelFile');
+    const log = document.getElementById('log');
+    const btnText = document.getElementById('btnText');
+    
+    const style = getComputedStyle(document.documentElement);
+    const successColor = style.getPropertyValue('--success').trim();
+    const errorColor = style.getPropertyValue('--error').trim();
+
+    if (!fileInput.files[0]) {
+        alert("Action Required: Please select a source file first.");
+        return;
+    }
+
+    log.style.background = "#ebf4ff";
+    log.style.color = "#002b5b";
+    log.innerText = "⚙️ Executing precision data mapping...";
+    btnText.innerText = "Processing...";
+
+    const masterHeaders = [
+    "Code", "Employee", "Department", "Basic Salary", "Mobile Allowance", 
+    "Transportation Allowance", "Job Nature Allow", "Meal Allowance", 
+    "Car Allow", "Fuel", "Gross", "Not Working Days", "Addition", 
+    "OverTime", "Final Gross", "Social Insurance 11%", "Social Insurance 21% Company",
+    "Taxable Gross for taxes", "Medical Care Share", "Taxable Gross", 
+    "Personal Exemption", "Tax Base", "Number of Days per Year", 
+    "Pervious Cumulative Income (الدخل التراكمي السابق)", 
+    "Cumulative Income (الدخل التراكمي)", "Annual Tax Base", "Annual Tax", 
+    "Annual Income Tax", "Pervious Income Tax", "Month Income Tax", 
+    "Total Salary", "Martyrs' Families Fund", "Loan", "Attendance Deductions", 
+    "Deducted Mobile Amount", "Premium", "Custody", "Advance Salary", 
+    "Other Deductions", "Total Deduction Amount", "Net Salary Final", 
+    "Net Salary", "Absence", "Late In", "Insurance 21%", 
+    "Social Insurance 11% Company", "Insurance Office Amount", "Social Insurance 1%"
+    ];
+    try {
+        const data = await fileInput.files[0].arrayBuffer();
+        const workbook = XLSX.read(data, { cellNF: true, cellText: true, cellDates: true });
+        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+
+        const headers = rows[0];
+        const idxCode = headers.indexOf("Employee/Registration Number of the Employee");
+        const idxName = headers.indexOf("Employee");
+        const idxDept = headers.indexOf("Department");
+        const idxRule = headers.indexOf("Payslip Lines/Rule/Name");
+        const idxTotal = headers.indexOf("Payslip Lines/Total");
+
+        if (idxCode === -1 || idxRule === -1 || idxTotal === -1) {
+            throw new Error("Critical Error: Required columns (Registration Number, Rule Name, or Total) are missing.");
+        }
+
+        const consolidatedData = [];
+        let currentEmployee = null;
+
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            const codeVal = String(row[idxCode] || "").trim();
+            const ruleName = String(row[idxRule] || "").trim();
+            const rawValue = row[idxTotal];
+
+            if (codeVal !== "") {
+                if (currentEmployee) consolidatedData.push(currentEmployee);
+                currentEmployee = { 
+                    "Code": codeVal, 
+                    "Employee": row[idxName], 
+                    "Department": row[idxDept],
+                    "Rules": {} 
+                };
+            }
+
+            if (currentEmployee && ruleName !== "") {
+                let numValue = 0;
+                if (typeof rawValue === 'number') {
+                    numValue = rawValue;
+                } else if (typeof rawValue === 'string') {
+                    numValue = parseFloat(rawValue.replace(/,/g, '')) || 0;
+                }
+                
+                // Add this inside your loop, right after you extract the ruleName
+               const cleanRule = ruleName.replace(/ى/g, 'ي'); // Force all Alif Maqsura to Yaa
+
+              // Now compare against the cleaned version
+              if (cleanRule.includes("الدخل التراكمي السابق")) {
+                    currentEmployee["Rules"]["Pervious Cumulative Income (الدخل التراكمي السابق)"] = numValue;
+                } else if (cleanRule.includes("الدخل التراكمي") && !cleanRule.includes("السابق")) {
+                  currentEmployee["Rules"]["Cumulative Income (الدخل التراكمي)"] = numValue;
+                } else {
+                  currentEmployee["Rules"][ruleName] = numValue;
+                }
+            }
+        }
+        if (currentEmployee) consolidatedData.push(currentEmployee);
+
+        const finalRows = consolidatedData.map(emp => {
+            let rowObj = {};
+            masterHeaders.forEach(header => {
+                if (header === "Code") rowObj[header] = emp.Code;
+                else if (header === "Employee") rowObj[header] = emp.Employee;
+                else if (header === "Department") rowObj[header] = emp.Department;
+                else {
+                    const val = emp["Rules"][header];
+                    rowObj[header] = (val !== undefined) ? val : 0;
+                }
+            });
+            return rowObj;
+        });
+
+        const newWS = XLSX.utils.json_to_sheet(finalRows, { header: masterHeaders });
+        const range = XLSX.utils.decode_range(newWS['!ref']);
+        newWS['!cols'] = masterHeaders.map(h => ({ wch: Math.max(h.length + 5, 16) }));
+
+        const newWB = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(newWB, newWS, "Consolidated_Payroll");
+        XLSX.writeFile(newWB, "Master_Payroll_Report.xlsx");
+        
+        log.style.background = "#def7ec";
+        log.style.color = successColor; 
+        log.innerText = `✅ Success: ${consolidatedData.length} Employee profiles correctly mapped.`;
+        btnText.innerText = "Execute Transformation";
+    } catch (err) {
+        log.style.background = "#fde8e8";
+        log.style.color = errorColor; 
+        log.innerText = "⚠️ " + err.message;
+        btnText.innerText = "Execute Transformation";
+    }
+}
+</script>
+</body>
+</html>
